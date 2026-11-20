@@ -5,24 +5,33 @@ const input = document.querySelector('#searchInput');
 const favContainer = document.querySelector('#favoritesContainer');
 const resultsContainer = document.querySelector('#searchResultsContainer');
 
-
 const detailsContainer = document.createElement('div');
 detailsContainer.className = 'mt-4';
 resultsContainer.after(detailsContainer);
 
 let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-let foundTeams = [];   
-let selectedId = null; 
+let foundTeams = [];
+let selectedId = null;
 
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function el(tag, className = '', text = '') {
+	const node = document.createElement(tag);
+	if (className) node.className = className;
+	if (text) node.textContent = text;
+	return node;
+}
 
+const message = (text) => el('p', 'text-body-secondary fst-italic', text);
+
+const isFavorite = (id) => favorites.some((f) => f.idTeam === id);
 
 form.addEventListener('submit', async (e) => {
 	e.preventDefault();
 	const team = input.value.trim();
+	if (!team) return;
+
 	resultsContainer.textContent = 'Ricerca in corso…';
-	detailsContainer.innerHTML = '';
+	detailsContainer.replaceChildren();
 
 	try {
 		const response = await fetch(`${API}/searchteams.php?t=${encodeURIComponent(team)}`);
@@ -61,88 +70,131 @@ async function loadEvents(idTeam, name, scroll) {
 		
 		if (idTeam !== selectedId) return;
 
-		detailsContainer.innerHTML = `
-			<div class="card details-card"><div class="card-body p-4">
-				<h3 class="h4 details-title">${esc(name)}</h3>
-				<h4 class="section-title">Prossimi eventi</h4>
-				${eventList(next.events, false, 'Nessun evento in programma')}
-				<h4 class="section-title">Ultimi risultati</h4>
-				${eventList(last.results, true, 'Nessun risultato disponibile')}
-			</div></div>`;
+		detailsContainer.replaceChildren(buildDetails(name, next.events, last.results));
 	} catch (error) {
 		console.error(error);
 		detailsContainer.textContent = 'Errore nel caricamento degli eventi.';
 	}
 }
 
+function buildDetails(name, nextEvents, lastResults) {
+	const card = el('div', 'card details-card');
+	const body = el('div', 'card-body p-4');
+
+	body.append(
+		el('h3', 'h4 details-title', name),
+		el('h4', 'section-title', 'Prossimi eventi'),
+		eventList(nextEvents, false, 'Nessun evento in programma'),
+		el('h4', 'section-title', 'Ultimi risultati'),
+		eventList(lastResults, true, 'Nessun risultato disponibile'),
+	);
+
+	card.append(body);
+	return card;
+}
+
 function eventList(events, withScore, emptyText) {
-	if (!events) return `<p class="fst-italic text-body-secondary">${emptyText}</p>`;
+	if (!events) return message(emptyText);
 
-	return '<ul class="event-list">' + events.map((ev) => {
+	const ul = el('ul', 'event-list');
+
+	events.forEach((ev) => {
 		const [y, m, d] = ev.dateEvent.split('-');
-		const score = withScore && ev.intHomeScore !== null
-			? `<span class="badge score-badge">${ev.intHomeScore} – ${ev.intAwayScore}</span>` : '';
-		return `<li class="event-item d-flex justify-content-between align-items-center">
-			<div><div class="event-date">${d}/${m}/${y}</div><div class="fw-semibold">${esc(ev.strEvent)}</div></div>
-			${score}</li>`;
-	}).join('') + '</ul>';
+		const li = el('li', 'event-item d-flex justify-content-between align-items-center');
+
+		const info = el('div');
+		info.append(
+			el('div', 'event-date', `${d}/${m}/${y}`),
+			el('div', 'fw-semibold', ev.strEvent),
+		);
+		li.append(info);
+
+		if (withScore && ev.intHomeScore !== null) {
+			li.append(el('span', 'badge score-badge', `${ev.intHomeScore} – ${ev.intAwayScore}`));
+		}
+
+		ul.append(li);
+	});
+
+	return ul;
 }
 
 
-function teamCard(team, isFavoriteList) {
-	const selected = team.idTeam === selectedId ? ' is-selected' : '';
-	let button;
-	if (isFavoriteList) {
-		button = `<button class="btn btn-sm btn-fav-remove w-100" data-remove="${team.idTeam}">Rimuovi</button>`;
+function teamCard(team) {
+	const fav = isFavorite(team.idTeam);
+
+	const col = el('div', 'col');
+	const card = el(
+		'div',
+		'card team-card h-100 text-center' + (team.idTeam === selectedId ? ' is-selected' : ''),
+	);
+	card.dataset.open = team.idTeam;
+	card.dataset.name = team.strTeam;
+
+	const body = el('div', 'card-body');
+
+	let badge;
+	if (team.strBadge) {
+		badge = el('img', 'team-badge mx-auto mb-3');
+		badge.src = `${team.strBadge}/small`;
+		badge.alt = team.strTeam;
 	} else {
-		button = `<button class="btn btn-sm btn-fav-add w-100" data-add="${team.idTeam}">Aggiungi ai preferiti</button>`;
+		badge = el('div', 'team-badge team-badge--empty mx-auto mb-3', '⚽');
 	}
-	return `
-		<div class="col">
-			<div class="card team-card h-100 text-center${selected}" data-open="${team.idTeam}" data-name="${esc(team.strTeam)}">
-				<div class="card-body">
-					<img class="team-badge mx-auto mb-3" src="${esc(team.strBadge)}/small" alt="${esc(team.strTeam)}">
-					<h3 class="h6 fw-bold mb-1">${esc(team.strTeam)}</h3>
-					<p class="team-meta mb-0">${esc(team.strLeague)}</p>
-					<p class="team-meta mb-3">${esc(team.strCountry)}</p>
-					${button}
-				</div>
-			</div>
-		</div>`;
+
+	const button = el(
+		'button',
+		fav ? 'btn btn-sm btn-fav-remove w-100' : 'btn btn-sm btn-fav-add w-100',
+		fav ? 'Rimuovi' : 'Aggiungi ai preferiti',
+	);
+	button.type = 'button';
+	if (fav) button.dataset.remove = team.idTeam;
+	else button.dataset.add = team.idTeam;
+
+	body.append(
+		badge,
+		el('h3', 'h6 fw-bold mb-1', team.strTeam),
+		el('p', 'team-meta mb-0', team.strLeague),
+		el('p', 'team-meta mb-3', team.strCountry),
+		button,
+	);
+
+	card.append(body);
+	col.append(card);
+	return col;
 }
 
-const grid = (html) => `<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">${html}</div>`;
+function grid(teams) {
+	const row = el('div', 'row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3');
+	row.append(...teams.map(teamCard));
+	return row;
+}
 
 function showFoundTeams() {
-	
-	const toShow = foundTeams.filter((t) => !favorites.some((f) => f.idTeam === t.idTeam));
 
-	if (toShow.length === 0) {
-		resultsContainer.innerHTML = '<p class="text-body-secondary fst-italic">Questa squadra è già nei tuoi preferiti: clicca la sua card in alto per vedere partite e risultati.</p>';
-		return;
-	}
-	resultsContainer.innerHTML = grid(toShow.map((t) => teamCard(t, false)).join(''));
+	resultsContainer.replaceChildren(grid(foundTeams));
 }
-
 
 function showFavorites() {
 	if (favorites.length === 0) {
-		favContainer.innerHTML = '<p class="text-body-secondary fst-italic">Non hai ancora salvato nessuna squadra. Cercane una qui sopra e aggiungila ai preferiti.</p>';
+		favContainer.replaceChildren(
+			message('Non hai ancora salvato nessuna squadra. Cercane una qui sopra e aggiungila ai preferiti.'),
+		);
 		return;
 	}
-	favContainer.innerHTML = grid(favorites.map((t) => teamCard(t, true)).join(''));
+	favContainer.replaceChildren(grid(favorites));
 }
 
 function saveFavorites() {
 	localStorage.setItem('favorites', JSON.stringify(favorites));
 }
 
+
 document.addEventListener('click', (e) => {
-	
 	const addBtn = e.target.closest('[data-add]');
 	if (addBtn) {
 		const team = foundTeams.find((t) => t.idTeam === addBtn.dataset.add);
-		if (team && !favorites.some((f) => f.idTeam === team.idTeam)) {
+		if (team && !isFavorite(team.idTeam)) {
 			favorites.push({
 				idTeam: team.idTeam,
 				strTeam: team.strTeam,
@@ -166,7 +218,6 @@ document.addEventListener('click', (e) => {
 		return;
 	}
 
-	
 	const card = e.target.closest('[data-open]');
 	if (card) {
 		selectedId = card.dataset.open;
@@ -195,4 +246,6 @@ themeToggle.addEventListener('click', () => {
 
 
 showFavorites();
+
+
 loadFavoritesResults();
