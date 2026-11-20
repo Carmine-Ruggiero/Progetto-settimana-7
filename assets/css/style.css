@@ -26,7 +26,7 @@ body {
 	background: var(--sh-bg);
 }
 
-/* Header */
+
 .hero-header {
 	background: var(--sh-primary);
 }
@@ -43,7 +43,7 @@ body {
 	max-width: 560px;
 }
 
-/* Card squadra */
+
 .team-card {
 	background: var(--sh-card);
 	border: 0;
@@ -83,7 +83,7 @@ body {
 	color: var(--bs-secondary-color);
 }
 
-/* Pulsanti preferiti */
+
 .btn-fav-add {
 	background: var(--sh-accent);
 	border-color: var(--sh-accent);
@@ -125,7 +125,7 @@ body {
 	opacity: 1;
 }
 
-/* Dettagli squadra */
+
 .details-card {
 	background: var(--sh-card);
 	border: 0;

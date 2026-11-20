@@ -47,3 +47,7 @@ Applicazione web per cercare squadre sportive, vedere i dettagli e salvare le pr
 - Gestire eventi e stati dei pulsanti
 - Usare le variabili CSS per i temi
 
+
+
+
+

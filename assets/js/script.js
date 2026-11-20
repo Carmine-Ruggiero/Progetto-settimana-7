@@ -25,6 +25,7 @@ const message = (text) => el('p', 'text-body-secondary fst-italic', text);
 
 const isFavorite = (id) => favorites.some((f) => f.idTeam === id);
 
+
 form.addEventListener('submit', async (e) => {
 	e.preventDefault();
 	const team = input.value.trim();
@@ -67,7 +68,7 @@ async function loadEvents(idTeam, name, scroll) {
 		const next = await nextRes.json();
 		const last = await lastRes.json();
 
-		
+	
 		if (idTeam !== selectedId) return;
 
 		detailsContainer.replaceChildren(buildDetails(name, next.events, last.results));
@@ -171,7 +172,7 @@ function grid(teams) {
 }
 
 function showFoundTeams() {
-
+	
 	resultsContainer.replaceChildren(grid(foundTeams));
 }
 
@@ -246,6 +247,4 @@ themeToggle.addEventListener('click', () => {
 
 
 showFavorites();
-
-
-loadFavoritesResults();
+loadEvents();
