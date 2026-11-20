@@ -1,0 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
+html,
+body {
+  font-family: "Roboto", sans-serif;
+}
+
+.hero-header {
+  background-color: #14366e;
+}
+
+.text-primary-custom {
+  color: #14366e;
+}
+
+.search-wrapper {
+  max-width: 540px;
+}
+
+.team-badge {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
